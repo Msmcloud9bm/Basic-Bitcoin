@@ -1,0 +1,99 @@
+name: Build and Release M-USDT-TRC20
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+        default: 'v1.0.0'
+      include_node_modules:
+        description: 'Include server production node_modules in ZIP (yes/no)'
+        required: true
+        default: 'yes'
+      publish_release:
+        description: 'Publish the GitHub Release (yes/no)'
+        required: true
+        default: 'yes'
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build server (install production deps)
+        working-directory: server
+        run: |
+          npm ci
+          # keep production deps only to reduce size
+          npm prune --production
+
+      - name: Build client (Vite)
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare package directory
+        run: |
+          rm -rf package || true
+          mkdir -p package/server
+          # copy server files required to run
+          cp -r server/package.json server/index.js server/.env.example package/server/
+          # include production node_modules if requested
+          if [ "${{ github.event.inputs.include_node_modules }}" = "yes" ]; then
+            cp -r server/node_modules package/server/
+          fi
+          # include built client
+          mkdir -p package/client-dist
+          cp -r client/dist/* package/client-dist/
+          cp README.md package/
+
+      - name: Create ZIP artifact
+        run: |
+          cd package
+          zip -r ../release.zip .
+          ls -lh ../release.zip
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.publish_release == 'yes' }}
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          release_name: M-USDT-TRC20-${{ github.event.inputs.tag }}
+          body: |
+            Automated build and release for M-USDT-TRC20 branch.
+            - Includes server (with production node_modules if requested)
+            - Includes built client (dist)
+            Security: no private keys are stored in the repo. To enable custodial server operations in CI, configure the SERVER_PRIVATE_KEY secret in repository secrets.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release
+        if: ${{ github.event.inputs.publish_release == 'yes' }}
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./release.zip
+          asset_name: M-USDT-TRC20-${{ github.event.inputs.tag }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload workflow artifact (fallback)
+        if: ${{ github.event.inputs.publish_release != 'yes' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: M-USDT-TRC20-${{ github.event.inputs.tag }}
+          path: release.zip
