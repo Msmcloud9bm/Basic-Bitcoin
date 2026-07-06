@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  m-usdt-server:
+    build: .
+    container_name: m-usdt-server
+    ports:
+      - "4000:4000"
+    environment:
+      - SERVER_PRIVATE_KEY=${SERVER_PRIVATE_KEY}
+      - TRONGRID_URL=${TRONGRID_URL}
+      - USDT_CONTRACT=${USDT_CONTRACT}
+    restart: unless-stopped
