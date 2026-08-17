@@ -1,0 +1,9 @@
+This is a placeholder file named MS-Bitcoin_Mainnet_core_NoKeys.zip.
+
+For security reasons this repository does NOT contain any private keys or wallet files. To produce a local, encrypted package that contains your private keys, run the scripts/local_packager.sh script on your own trusted machine (the script is committed in this branch).
+
+To download the full non-secret project ZIP directly instead of this placeholder, use the branch ZIP link:
+
+https://github.com/Msmcloud9bm/Basic-Bitcoin/archive/refs/heads/mainnet-transaction-demo.zip
+
+If you want a true prebuilt ZIP (binary archive) committed here, I can add it — but it will still NOT contain any keys. If you want that, reply "Add prebuilt zip (no keys)" and I will create and commit MS-Bitcoin_Mainnet_core_NoKeys.zip.
